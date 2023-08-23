@@ -6,8 +6,6 @@ SELECT *
 FROM Portfolio_Project..CovidVaccinations
 ORDER BY 3,4
 
---Select Data that we are going to be using 
-
 SELECT Location, date, total_cases, new_cases, total_deaths, population 
 FROM Portfolio_Project..CovidDeaths
 Order BY 1,2
@@ -43,26 +41,6 @@ JOIN Portfolio_Project..CovidVaccinations vac
 WHERE dea.continent is not null 
 ORDER BY 2,3
 
---Use CTE 
-
-WITH PopvsVac (Continent, Location, Date, Population, New_Vaccinations, RollingPeopleVaccinated)
-AS
-(
-SELECT dea.continent, dea.location, dea.date, dea.population, vac.new_vaccinations,
-SUM(Cast(vac.new_vaccinations AS int)) OVER (Partition BY dea.Location ORDER BY dea.location,
-dea.Date) AS RollingPeopleVaccinated
-FROM Portfolio_Project..CovidDeaths dea 
-JOIN Portfolio_Project..CovidVaccinations vac 
-    ON dea.location = vac.location 
-    and dea.date = vac.date 
-WHERE dea.continent is not null 
-
-)
-SELECT *, (RollingPeopleVaccinated/Population)*100
-FROM PopvsVac
-
---Temp Table 
-
 DROP TABLE IF exists #PercentPopulationVaccinated
 CREATE TABLE #PercentPopulationVaccinated
 (
@@ -86,9 +64,6 @@ JOIN Portfolio_Project..CovidVaccinations vac
 SELECT *, (RollingPeopleVaccinated/Population)*100
 FROM #PercentPopulationVaccinated
 
-
---Creating View to store data for later visualizations
-
 CREATE VIEW PercentPopulationVaccinated AS
 SELECT dea.continent, dea.location, dea.date, dea.population, vac.new_vaccinations,
 SUM(Cast(vac.new_vaccinations AS int)) OVER (Partition BY dea.Location ORDER BY dea.location,
@@ -98,6 +73,41 @@ JOIN Portfolio_Project..CovidVaccinations vac
     ON dea.location = vac.location 
     and dea.date = vac.date 
 WHERE dea.continent is not null 
+
+--Tableau Queries 
+
+--1. 
+
+SELECT SUM(new_cases) AS total_cases, SUM(Cast(new_deaths AS int)) AS total_deaths, SUM(Cast(new_deaths AS int))/SUM(New_cases) *100 AS DeathPercentage
+FROM Portfolio_Project..CovidDeaths
+WHERE continent is not null 
+ORDER BY 1,2
+
+--2. 
+
+SELECT location, SUM(cast(new_deaths AS int)) AS TotalDeathCount
+FROM Portfolio_Project..CovidDeaths
+WHERE continent is NULL
+and location not in ('world', 'European Union', 'International')
+GROUP BY location 
+ORDER BY TotalDeathCount desc 
+
+--3. 
+
+SELECT location, Population, MAX(total_cases) AS HighestInfectionCount, MAX((total_cases/population))*100 AS PercentPopulationInfected
+FROM Portfolio_Project..CovidDeaths
+GROUP BY Location, Population 
+ORDER BY PercentPopulationInfected desc 
+
+--4. 
+
+SELECT Location, Population, date, MAX(total_cases) AS HighestInfectionCount, MAX((total_cases/population))*100 AS PercentPopulationInfected
+FROM Portfolio_Project..CovidDeaths
+GROUP BY Location, population, date
+ORDER BY PercentPopulationInfected desc 
+
+
+
 
 
 
