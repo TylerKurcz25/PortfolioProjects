@@ -1,0 +1,167 @@
+SELECT * 
+FROM world_life_expectancy;
+
+SELECT Country, YEAR, CONCAT(country, YEAR), COUNT(CONCAT(country, YEAR)) AS Count
+FROM world_life_expectancy
+GROUP BY Country, YEAR, CONCAT(country, YEAR) 
+HAVING COUNT(CONCAT(country, YEAR)) > 1; -- Checking for Duplicates
+
+SELECT *
+FROM (
+	SELECT Row_ID, 
+    CONCAT(country, YEAR),
+	ROW_NUMBER() OVER(PARTITION BY CONCAT(country, YEAR) ORDER BY CONCAT(country, YEAR)) AS Row_Num
+	FROM world_life_expectancy
+    ) AS Row_Table
+WHERE Row_Num > 1
+    ; -- Getting Row_ID for removing Duplicates
+    
+    DELETE FROM world_life_expectancy
+    WHERE 
+		Row_ID IN (
+        SELECT Row_ID
+FROM (
+	SELECT Row_ID, 
+    CONCAT(country, YEAR),
+	ROW_NUMBER() OVER(PARTITION BY CONCAT(country, YEAR) ORDER BY CONCAT(country, YEAR)) AS Row_Num
+	FROM world_life_expectancy
+    ) AS Row_Table
+WHERE Row_Num > 1
+); -- Removed all the Duplicates 
+
+SELECT DISTINCT(status) 
+FROM world_life_expectancy
+WHERE Status <> ''; -- Checking for blank values
+
+SELECT DISTINCT(Country) 
+FROM world_life_expectancy
+WHERE Status = 'Developing';
+
+UPDATE world_life_expectancy
+SET status = 'Developing'
+WHERE Country IN (SELECT DISTINCT(Country) 
+				  FROM world_life_expectancy -- Didnt work because of FROM clause 
+                  WHERE Status = 'Developing');
+                  
+UPDATE world_life_expectancy t1
+JOIN world_life_expectancy t2 -- JOIN now allows us to filter 
+	ON t1.Country = t2.Country 
+SET t1.status = 'Developing'
+WHERE t1.status = ''
+AND t2.status <> ''
+AND t2.status = 'Developing';
+
+SELECT * 
+FROM world_life_expectancy
+WHERE status = '';
+
+SELECT * 
+FROM world_life_expectancy
+WHERE Country = 'United States of America';
+
+UPDATE world_life_expectancy t1
+JOIN world_life_expectancy t2 -- JOIN now allows us to filter 
+	ON t1.Country = t2.Country 
+SET t1.status = 'Developed'
+WHERE t1.status = ''
+AND t2.status <> ''
+AND t2.status = 'Developed';
+
+
+SELECT *
+FROM world_life_expectancy;
+
+SELECT *
+FROM world_life_expectancy
+WHERE `Life expectancy` = '';
+
+SELECT t1.Country, t1.Year, t1.`Life expectancy`, 
+t2.Country, t2.Year, t2.`Life expectancy`,
+t3.Country, t3.Year, t3.`Life expectancy`,
+ROUND((t2.`Life expectancy` + t3.`Life expectancy`)/2,1)
+FROM world_life_expectancy t1
+JOIN world_life_expectancy t2
+	ON t1.Country = t2.Country 
+    AND t1.Year = t2.Year - 1
+JOIN world_life_expectancy t3
+	ON t1.Country = t3.Country 
+    AND t1.Year = t3.Year + 1
+WHERE t1.`Life expectancy` = ''; -- Getting average for missing `Life expectancy` values 
+
+UPDATE world_life_expectancy t1
+JOIN world_life_expectancy t2
+	ON t1.Country = t2.Country 
+    AND t1.Year = t2.Year - 1
+JOIN world_life_expectancy t3
+	ON t1.Country = t3.Country 
+    AND t1.Year = t3.Year + 1
+SET t1.`Life expectancy` = ROUND((t2.`Life expectancy` + t3.`Life expectancy`)/2,1)
+WHERE t1.`Life expectancy` = '';
+
+SELECT Country, Year, `Life expectancy`
+FROM world_life_expectancy
+WHERE `Life expectancy` = '';
+
+# Exploratory Data Analysis 
+
+SELECT *
+FROM world_life_expectancy;
+
+SELECT Country, 
+MIN(`Life expectancy`), 
+MAX(`Life expectancy`),
+ROUND(MAX(`Life expectancy`) - MIN(`Life expectancy`),1) AS life_increase_15_years 
+FROM world_life_expectancy
+GROUP BY Country
+HAVING MIN(`Life expectancy`) <> 0 
+AND MAX(`Life expectancy`) <> 0 
+ORDER BY life_increase_15_years ASC;
+
+
+SELECT Year, ROUND(AVG(`Life expectancy`),2)
+FROM world_life_expectancy
+WHERE `Life expectancy` <> 0 
+AND `Life expectancy` <> 0 
+GROUP BY Year
+ORDER BY Year;
+
+SELECT *
+FROM world_life_expectancy;
+
+SELECT Country, ROUND(AVG(`Life expectancy`),1) AS life_exp, ROUND(AVG(GDP),1) AS GDP
+FROM world_life_expectancy
+GROUP BY Country
+HAVING life_exp > 0 
+AND GDP > 0 
+ORDER BY GDP DESC; -- Checking if there is a possible correlation in data
+
+
+SELECT 
+SUM(CASE WHEN GDP >= 1500 THEN 1 ELSE 0 END) High_GDP_Count, -- 1326 rows of GDP higher than 1500
+AVG(CASE WHEN GDP >= 1500 THEN `Life expectancy` ELSE NULL END) High_GDP_Life_Expectancy,
+SUM(CASE WHEN GDP <= 1500 THEN 1 ELSE 0 END) Low_GDP_Count, -- 1326 rows of GDP Lower than 1500
+AVG(CASE WHEN GDP <= 1500 THEN `Life expectancy` ELSE NULL END) Low_GDP_Life_Expectancy
+FROM world_life_expectancy;
+
+SELECT Status, ROUND(AVG(`Life expectancy`),1)
+FROM world_life_expectancy
+GROUP BY Status;
+
+SELECT Status, COUNT(DISTINCT Country),ROUND(AVG(`Life expectancy`),1)
+FROM world_life_expectancy
+GROUP BY Status;
+
+SELECT Country, ROUND(AVG(`Life expectancy`),1) AS life_exp, ROUND(AVG(BMI),1) AS BMI
+FROM world_life_expectancy
+GROUP BY Country
+HAVING life_exp > 0 
+AND BMI  > 0 
+ORDER BY BMI ASC; 
+
+SELECT Country, 
+Year, 
+`Life expectancy`, 
+`Adult Mortality`,
+SUM(`Adult Mortality`) OVER(PARTITION BY Country ORDER BY Year) AS rolling_total
+FROM world_life_expectancy
+WHERE Country LIKE '%United%'; 
