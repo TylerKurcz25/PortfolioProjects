@@ -44,7 +44,7 @@ WHERE Country IN (SELECT DISTINCT(Country)
                   WHERE Status = 'Developing');
                   
 UPDATE world_life_expectancy t1
-JOIN world_life_expectancy t2 -- JOIN now allows us to filter 
+JOIN world_life_expectancy t2 
 	ON t1.Country = t2.Country 
 SET t1.status = 'Developing'
 WHERE t1.status = ''
