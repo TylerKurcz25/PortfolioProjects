@@ -20,7 +20,7 @@ FROM (
 WHERE 
 	row_num > 1
 );
--- Fixing some data quality issues by fixing typos and general standardization
+-- Fixing some data quality issues by correcting typos and general standardization
 UPDATE US_Project2.us_household_income
 SET State_Name = 'Georgia'
 WHERE State_Name = 'georia';
